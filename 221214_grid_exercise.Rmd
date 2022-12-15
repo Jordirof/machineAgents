@@ -7,15 +7,6 @@ output:
     theme: cerulean
     toc : TRUE
     fig_crop : FALSE
-  html_document:
-    toc : TRUE
-    toc_depth : 6
-    toc_float : FALSE
-    number_sections : TRUE
-    fig_width : 6.5
-    fig_height : 4.5
-    fig_crop : TRUE
-    fig_caption : TRUE
 ---
 
 ```{r setup, include=FALSE}
@@ -60,9 +51,9 @@ Energy is generated in power plants that provide constant energy supply (in the 
 
 ## Energy demand
 
-The energy demand is not constant throughout the daily cycle. In fact, it follows a realistic profile characteristic of summer in the US according to the EIA. In the simulation demand is deterministic, and it is assumed to be different in each hour of the day. A total of 50 day cycles are considered in the simulation.
+The energy demand is not constant throughout the daily cycle. In fact, it follows a realistic profile characteristic of summer in the US according to the EIA (see Sources). In the simulation demand is deterministic, and it is assumed to be different in each hour of the day. Each household/consumer is assumed to be identical and there are a total of `r mkd$pdm$total_consumers/1000` thousand consumers. The chart \@ref(fig:demand) plots the daily consumption of one of these consumers. A total of `r mkd$prm$pr/24` day cycles are considered in the simulation.
 
-```{r echo=FALSE}
+```{r demand, fig.cap="Energy consumption of a household over the day. In the simulation households are assumed to be identical.", echo=FALSE}
 mkd$chr$demand 
 ```
 
@@ -140,3 +131,13 @@ The assumption is that the machine allocator is only driven by short-term profit
 The optimal allocation is only optimal conditional on the chosen set of rules that bound machine agents.
 
 # Sources
+
+* Energy demand patterns: https://www.eia.gov/todayinenergy/detail.php?id=42915
+
+* Electricity average consumption: https://www.eia.gov/tools/faqs/faq.php?id=97&t=3#
+
+* EU energy market design: https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32009R0714
+
+* EU grid price setting and related issues: https://www.reuters.com/world/europe/how-could-europe-cap-surging-energy-prices-2022-08-30/
+
+

@@ -44,20 +44,20 @@ spl$p4$power_p <- 100 #8
 pdm$daily_average_Mw <- c(0.5,0.5,0.5,0.5,0.5,0.5,1.0,1.0,1.0,1.5,1.5,1.5,1.5,1.5,1.5,1.5,1.5,1.5,1.0,1.0,1.0,1.0,1.0,1.0)*600/30/12*0.001
 names(pdm$daily_average_Mw) <- 0:23
 pdm$total_consumers <- 60000
-pdm$Mwh <- rep(pdm$daily_average_Mw*pdm$total_consumers,prm$pr/24)
-names(pdm$Mwh) <- 1:length(pdm$Mwh)
+pdm$MWh <- rep(pdm$daily_average_Mw*pdm$total_consumers,prm$pr/24)
+names(pdm$MWh) <- 1:length(pdm$MWh)
 
 # Buying and selling opportunities
-opt$price <- opt$supply <- opt$sell_q <- opt$buy_q <- pdm$Mwh*NA
+opt$price <- opt$supply <- opt$sell_q <- opt$buy_q <- pdm$MWh*NA
 # Marginal price
-opt$price[pdm$Mwh <= (spl$p1$power_Mw + spl$p2$power_Mw + spl$p2$power_Mw)] <- spl$p3$power_p
-opt$price[pdm$Mwh <= (spl$p1$power_Mw + spl$p2$power_Mw)] <- spl$p2$power_p
-opt$price[pdm$Mwh <= spl$p1$power_Mw] <- spl$p1$power_p
+opt$price[pdm$MWh <= (spl$p1$power_Mw + spl$p2$power_Mw + spl$p2$power_Mw)] <- spl$p3$power_p
+opt$price[pdm$MWh <= (spl$p1$power_Mw + spl$p2$power_Mw)] <- spl$p2$power_p
+opt$price[pdm$MWh <= spl$p1$power_Mw] <- spl$p1$power_p
 # Loop convenience
 # This loops iterates not by period, but by market state depending of number of producers active
 opt$filter <-  matrix(NA,length(spl),prm$pr)
 opt$supply[is.na(opt$supply)] <-  spl[[1]]$power_Mw #initial condition
-opt$sell_q <- pdm$Mwh
+opt$sell_q <- pdm$MWh
 for(i in 1:length(spl)){
   # Create filter
   opt$filter[i,] <- opt$price == spl[[i]]$power_p
@@ -67,13 +67,13 @@ for(i in 1:length(spl)){
   opt$sell_q[colSums(opt$filter[1:i,,drop=F])==0] <- opt$sell_q[colSums(opt$filter[1:i,,drop=F])==0] - spl[[min(i+1,length(spl))]]$power_Mw
 }
 # Energy purchase frontier of possibility
-opt$buy_q <-  opt$supply - pdm$Mwh
+opt$buy_q <-  opt$supply - pdm$MWh
 # Energy purchase 
 opt$decision <- matrix(0,prm$pr+1,12) #Periods +1 to record initial conditions
 colnames(opt$decision) <- c("Period","Supply","Demand","SellQ","BuyQ","Price","Decision","StorageFlow","StorageStock","MaxStorage","MoneyFlow","MoneyStock")
 opt$decision[,"Period"] <- 0:prm$pr
 opt$decision[-1,"Supply"] <- opt$supply
-opt$decision[-1,"Demand"] <- pdm$Mwh
+opt$decision[-1,"Demand"] <- pdm$MWh
 opt$decision[-1,"SellQ"] <- opt$sell_q
 opt$decision[-1,"BuyQ"] <- opt$buy_q
 opt$decision[-1,"Price"] <- opt$price
@@ -82,7 +82,7 @@ opt$simulartion_results
 
 # Optimize the daily cycle
 # Define all the possible options of the parameters to be optimized in the 
-sim$vars <- expand.grid("SellP" = unique(opt$price), "BuyP" = unique(opt$price), "Machines" = 1:(sum(opt$supply-pdm$Mwh)/prm$machine_storage), "Revenue" = 0, "Profit" = 0)
+sim$vars <- expand.grid("SellP" = unique(opt$price), "BuyP" = unique(opt$price), "Machines" = 1:(sum(opt$supply-pdm$MWh)/prm$machine_storage), "Revenue" = 0, "Profit" = 0)
 sim$vars <- sim$vars[sim$vars[,"SellP"] > sim$vars[,"BuyP"],] # Exclude cases where sell price is lower or equal than buy price
 sim$seq <- list()
 
@@ -147,7 +147,7 @@ plotTheme <- function(text_size = 12) {
 cda$demand <- data.frame( "Pattern" = pdm$daily_average_Mw, "Hour" = 1:length(pdm$daily_average_Mw) )
 chr$demand <- ggplot2::ggplot(data= cda$demand, ggplot2::aes(x=Hour, y=Pattern)) +
               ggplot2::geom_bar(stat="identity") +
-              ggplot2::labs(title = "Energy demand of a consumer in a day", x = "Hour", y = "Consumption Mw/h") +
+              ggplot2::labs(title = "Consumption of a consumer in a day", x = "Hour", y = "MWh") +
               plotTheme()
 
 # Plot the optimization results
@@ -161,16 +161,16 @@ cda$optimization <- data.frame("Machines"=rmv$S2B1[,"Machines"],
                         "S2B1"=rmv$S2B1[,"Profit"],
                         "S3B1"=rmv$S3B1[,"Profit"],
                         "S3B2"=rmv$S3B2[,"Profit"])
-# names(cda$optimization) <- c("Machines",
-#                              paste("Sell.",spl$p2$power_p,"Buy.",spl$p1$power_p,sep=""),
-#                              paste("Sell.",spl$p3$power_p,"Buy.",spl$p1$power_p,sep=""),
-#                              paste("Sell.",spl$p3$power_p,"Buy.",spl$p2$power_p,sep=""))
+rmv$optimization_labels <- c(paste("Sell ",spl$p2$power_p,", buy ",spl$p1$power_p,sep=""),
+                           paste("Sell ",spl$p3$power_p,", buy ",spl$p1$power_p,sep=""),
+                           paste("Sell ",spl$p3$power_p,", buy ",spl$p2$power_p,sep=""))
 
-chr$optimization <- ggplot2::ggplot(data = cda$optimization[1:250,], ggplot2::aes(x = Machines, y = S2B1, group = 1)) +
+chr$optimization <- ggplot2::ggplot(data = cda$optimization[1:75,], ggplot2::aes(x = Machines, y = S2B1, group = 1)) +
                     ggplot2::geom_line(ggplot2::aes(y = S2B1, colour = "S2B1"), linetype = "solid", size = 1) +
                     ggplot2::geom_line(ggplot2::aes(y = S3B1, colour = "S3B1"), linetype = "solid", size = 1) +
                     ggplot2::geom_line(ggplot2::aes(y = S3B2, colour = "S3B2"), linetype = "solid", size = 1) +
-                    ggplot2::labs(title = "Profit by strategy over machine number", x = "Machines", y = "Profit") +
+                    ggplot2::labs(title = "Profit by strategy over machine number", x = "Machines", y = "Euro") +
+                    ggplot2::scale_colour_discrete(name = "Strategies:", labels = rmv$optimization_labels) +
                     plotTheme()
 
 # Origin of energy demand
@@ -187,18 +187,23 @@ cda$energyf[cda$energyf["Storage"] < 0,"Storage"] <- 0
 cda$energyf[cda$energyf["ConsumpBattery"] < 0,"ConsumpBattery"] <- 0
 cda$energyf["ConsumpGenerator"] <- data.frame(cda$energyf[,"Demand"] - cda$energyf[,"ConsumpBattery"])
 cda$energy <- cda$energyf[1:(24*3+1) ,-c(2,3,4)]
-cda$energy <- tidyr::gather(cda$energy, key = EnergyUse, value = Mwh, c(Storage, ConsumpGenerator, ConsumpBattery), factor_key = T)
+cda$energy <- tidyr::gather(cda$energy, key = EnergyUse, value = MWh, c(Storage, ConsumpGenerator, ConsumpBattery), factor_key = T)
 
-chr$energy <- ggplot2::ggplot(cda$energy, ggplot2::aes(fill=EnergyUse, y=Mwh, x=Hour)) + 
+rmv$energy_labels <- c("Released by agents",
+                       "Stored by agents",
+                       "Generated & consumed")
+
+chr$energy <- ggplot2::ggplot(cda$energy, ggplot2::aes(fill=factor(EnergyUse, levels=c("ConsumpBattery","Storage","ConsumpGenerator")), y=MWh, x=Hour)) + 
   ggplot2::geom_bar(position="stack", stat="identity") +
-  ggplot2::labs(title = paste("Energy origin/use, first",max(cda$energy["Hour"])/24,"days")) +
+  ggplot2::labs(title = paste("Energy origin/use (optimal strategy)")) +
+  ggplot2::scale_fill_discrete(name = "", labels = rmv$energy_labels) +
   plotTheme()
 
 # Evolution of battery storage
-cda$storage <- data.frame( "Mwh" = sim$seq[[sim$optimal_iter]][,"StorageStock"], "Hour" = sim$seq[[sim$optimal_iter]][,"Period"])
-chr$storage <- ggplot2::ggplot(data= cda$storage, ggplot2::aes(x=Hour, y=Mwh)) +
+cda$storage <- data.frame( "MWh" = sim$seq[[sim$optimal_iter]][,"StorageStock"], "Hour" = sim$seq[[sim$optimal_iter]][,"Period"])
+chr$storage <- ggplot2::ggplot(data= cda$storage, ggplot2::aes(x=Hour, y=MWh)) +
   ggplot2::geom_bar(stat="identity") +
-  ggplot2::labs(title = "Storage capacity (optimal strategy)", x = "Hour", y = "Mwh") +
+  ggplot2::labs(title = "Storage capacity (optimal strategy)", x = "Hour", y = "MWh") +
   plotTheme()
 
 # Evolution of cash flow
@@ -214,6 +219,7 @@ mkd$chr <- chr
 mkd$pdm <- pdm
 mkd$spl <- spl
 mkd$sim <- sim
+mkd$prm <- prm
 
 # Save important objects for Markdown in temporary directory
 rmv$path <- tempdir()
@@ -221,4 +227,3 @@ rmv$pathsplit <- which(strsplit(rmv$path, "")[[1]] == "\\")
 rmv$path <- strtrim(rmv$path, rmv$pathsplit[3])
 rmv$path <- paste(rmv$path,"markdown_data.Rda",sep="")
 save(mkd,file=rmv$path)
-

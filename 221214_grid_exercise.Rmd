@@ -34,7 +34,7 @@ load(rmv$path)
 
 # Assignment description
 
-Propose a scheme of coordination optimally allocating a distributed swarm of heterogenous machine agents in the provision of real-time ancillary/balancing^1^ services market.
+Propose a scheme of coordination optimally allocating a distributed swarm of heterogeneous machine agents in the provision of real-time ancillary/balancing^1^ services market.
 
 Provide a definition of a machine's^2^ capability. Provide a definition of ancillary/balancing markets.
 

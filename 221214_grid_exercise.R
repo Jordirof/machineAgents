@@ -81,7 +81,7 @@ sim$opt$decision[-1,"Price"] <- sim$opt$price
 sim$opt$simulartion_results
 
 # Optimize the daily cycle
-# Define all the possible sim$options of the parameters to be sim$optimized in the 
+# Define all the possible options of the parameters to be optimized in the 
 sim$vars <- expand.grid("SellP" = unique(sim$opt$price), "BuyP" = unique(sim$opt$price), "Machines" = 1:(sum(sim$opt$supply-pdm$MWh)/prm$machine_storage_MWh), "Revenue" = 0, "Profit" = 0)
 sim$vars <- sim$vars[sim$vars[,"SellP"] > sim$vars[,"BuyP"],] # Exclude cases where sell price is lower or equal than buy price
 sim$seq <- list()
@@ -92,7 +92,7 @@ for(n in 1:nrow(sim$vars)){
   sim$seq[[n]] <- sim$opt$decision
   sim$seq[[n]][,"MaxStorage"] <- prm$machine_storage_MWh*sim$vars[n,"Machines"]
   for(i in 2:nrow(sim$opt$decision)){
-    # The loop acroos i ensures all the periods are taken into account
+    # The loop across i ensures all the periods are taken into account
     # Compute decision
     if(sim$seq[[n]][i,"Price"] <= sim$vars[n,"BuyP"]){
       # Store decision type

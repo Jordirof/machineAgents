@@ -4,7 +4,7 @@ author: "Jordi Rof"
 date: "2022-12-14"
 output: 
   bookdown::html_document2:
-    theme: cerulean
+    theme: flatly
     toc : TRUE
     fig_crop : FALSE
 ---
@@ -21,6 +21,53 @@ rmv$pathsplit <- which(strsplit(rmv$path, "")[[1]] == "\\")
 rmv$path <- strtrim(rmv$path, rmv$pathsplit[3])
 rmv$path <- paste(rmv$path,"markdown_data.Rda",sep="")
 load(rmv$path)
+# Table function for better style 
+
+myTableStyle <- function (data, autofit = TRUE, text_size = 12, 
+                          bold_header = TRUE, txt_color = NULL, border_color = NULL) {
+  
+  # options
+  if(is.null(txt_color)){txt_color<-R2::sty_palette("Light black", search_by = "name")}
+  if(is.null(border_color)){border_color<-R2::sty_palette("Grey chart", search_by = "name")}
+  
+  # Create flextable object
+  x <- flextable::flextable(data)
+  
+  # Autofit flextable object
+  if (autofit == TRUE){
+  x <- flextable::autofit(x)
+  }
+  
+  big_border <- officer::fp_border(width = 2, color = border_color)
+  std_border <- officer::fp_border(width = 1, color = border_color)
+  TOC_border <- officer::fp_border(width = 3, color = border_color)
+  h_nrow <- flextable::nrow_part(x, "header")
+  f_nrow <- flextable::nrow_part(x, "footer")
+  b_nrow <- flextable::nrow_part(x, "body")
+  x <- flextable::border_remove(x)
+  if (h_nrow > 0) {
+    x <- flextable::hline_top(x, border = big_border, part = "header")
+    x <- flextable::hline(x, border = std_border, part = "header")
+    x <- flextable::hline_bottom(x, border = big_border, part = "header")
+    x <- flextable::bold(x, bold = bold_header, part = "header")
+  }
+  if (f_nrow > 0) {
+    x <- flextable::hline_bottom(x, border = big_border, part = "footer")
+  }
+  if (b_nrow > 0) {
+    x <- flextable::hline_bottom(x, border = big_border, part = "body")
+  }
+  x <- flextable::align_text_col(x, align = "left", header = TRUE)
+  x <- flextable::align_nottext_col(x, align = "right", header = TRUE)
+  flextable::fix_border_issues(x)
+  # Adding font and color
+  x <- flextable::color(x, color = txt_color, part = "all")
+  x <- flextable::font(x, fontname = "Arial")
+  # Set specific settings
+  x <- flextable::fontsize(x, size = text_size, part = "all")
+  return(x)
+}
+
 ```
 
 # Assignment description
@@ -37,9 +84,21 @@ Provide a definition of a machine's^2^ capability. Provide a definition of ancil
 
 The objective of this exercise is to describe and solve a scheme of coordination optimally allocating a swarm of machine agents. Allocation in this exercise primarily implies deciding the number of machine agents deployed to the grid. The decision is taken with the intention of maximizing profits.
 
-The machine agents in this exercise are relatively simple. They consists of machines with the ability of deciding at which price to store energy and at which price to release it to the grid. The decision is made following simple price-based rules, therefore the machines do not consider the timing in their decision making. These machines are bounded by energy storage capacity. 
+The machine agents in this exercise are relatively simple. They consists of machines with the ability of deciding at which price to store energy and at which price to release it to the grid. The decision is made following simple price-based rules, therefore the machines do not consider the timing in their decision making. These machines are bounded by energy storage capacity. Importantly, the intervention of the machine agents has an impact on which power plants are operational in each discrete point in time.
 
-Importantly, the intervention of the machine agents has an impact on which power plants are operational in each discrete point in time.
+The key parameters of the exercise are listed below:
+
+* Periods: `r mkd$prm$pr` hours (`r mkd$prm$pr/24` days)
+
+* Machine agent storage capacity: `r mkd$prm$machine_storage_MWh` MWh 
+
+* Machine agent life expectancy: `r mkd$prm$machine_life_years` years
+
+* Machine agent cost: `r round(mkd$prm$machine_total_cost/1000,2)` thousand euro
+ 
+* Machine agent cost allocated to the exercise period: `r round(mkd$prm$machine_exercise_cost/1000,2)` thousand euro
+
+* Number of consumers: `r round(mkd$prm$total_consumers/1000,2)` thousand
 
 ## The grid system
 
@@ -47,13 +106,19 @@ The system in which the machine agents operate is a standard electricity grid. T
 
 ## Energy supply
 
-Energy is generated in power plants that provide constant energy supply (in the simulation each power plant provides `r mkd$spl$p1$power_Mw` Mw, so they could be considered very small gas power plants). The assumption of constant supply is made for simplicity of the optimization / allocation problem. The minimum number of suppliers needed in order to achieve fluctuating prices is two (see "Wholesale energy prices"). In the calibration of this exercise there are the price at which power plants are willing to sell their energy are `r mkd$spl$p1$power_p`, `r mkd$spl$p2$power_p`, `r mkd$spl$p3$power_p` and `r mkd$spl$p4$power_p` EUR./Mwh. 
+Energy is generated in power plants that provide constant energy supply (in the simulation each power plant provides `r mkd$spl$p1$power_Mw` MW, so they could be considered very small gas power plants). The assumption of constant supply is made for simplicity of the optimization / allocation problem. The minimum number of suppliers needed in order to achieve fluctuating prices is two (see [wholesale energy price](#wholesale-energy-prices)). In the calibration of this exercise there are the price at which power plants are willing to sell their energy are listed in the table below, in column 'Cost'. 
+
+```{r mytable, echo=FALSE, warning = FALSE, message=FALSE}
+names(mkd$spl$generators) <- c("Capactity (MW)", "Cost (Euro/MWh)")
+myTableStyle(mkd$spl$generators)
+```
+
 
 ## Energy demand
 
-The energy demand is not constant throughout the daily cycle. In fact, it follows a realistic profile characteristic of summer in the US according to the EIA (see Sources). In the simulation demand is deterministic, and it is assumed to be different in each hour of the day. Each household/consumer is assumed to be identical and there are a total of `r mkd$pdm$total_consumers/1000` thousand consumers. The chart \@ref(fig:demand) plots the daily consumption of one of these consumers. A total of `r mkd$prm$pr/24` day cycles are considered in the simulation.
+The energy demand is not constant throughout the daily cycle. In fact, it follows a realistic profile characteristic of summer in the US according to the EIA (see [sources](#sources)). In the simulation demand is deterministic, and it is assumed to be different in each hour of the day. Each household/consumer is assumed to be identical and there are a total of `r mkd$pdm$total_consumers/1000` thousand consumers. The chart \@ref(fig:demand) plots the daily consumption of one of these consumers. A total of `r mkd$prm$pr/24` day cycles are considered in the simulation.
 
-```{r demand, fig.cap="Energy consumption of a household over the day. In the simulation households are assumed to be identical.", echo=FALSE}
+```{r demand, fig.cap="Energy consumption of a household over the day. In the simulation households are assumed to be identical.", echo=FALSE, fig.align="center"}
 mkd$chr$demand 
 ```
 
@@ -87,19 +152,19 @@ Figure \@ref(fig:optimization) visualizes the optimal decision and the performan
 Figures \@ref(fig:energy), \@ref(fig:storage) and \@ref(fig:cashbalance) visualize how the optimal allocation (optimal strategy and number of machines) functions. Figure \@ref(fig:energy) shows how demand is met (storage vs. Generation) and when energy is stored. Figure \@ref(fig:storage) shows the evolution fo the charge through the periods of the simulation. Figure \@ref(fig:cashbalance) shows the evolution of the cash flow.
 
 
-```{r optimization, fig.cap="Profit produced by each purchasing/selling strategy as the number of machines increases. The optimal allocation is defined by the strategy and number of machines that maximizes profits.", echo=FALSE}
+```{r optimization, fig.cap="Profit produced by each purchasing/selling strategy as the number of machines increases. The optimal allocation is defined by the strategy and number of machines that maximizes profits.", echo=FALSE, fig.align="center"}
 mkd$chr$optimization 
 ```
 
-```{r energy, fig.cap="Use and origin of energy in the first three days of the optimal allocation.", echo=FALSE}
+```{r energy, fig.cap="Use and origin of energy in the first three days of the optimal allocation.", echo=FALSE, fig.align="center"}
 mkd$chr$energy 
 ```
 
-```{r storage, fig.cap="Evolution of energy storage storage over the whole period considered in the simulation for the optimal allocation.", echo=FALSE}
+```{r storage, fig.cap="Evolution of energy storage storage over the whole period considered in the simulation for the optimal allocation.", echo=FALSE, fig.align="center"}
 mkd$chr$storage 
 ```
 
-```{r cashbalance, fig.cap="Evolution of cash balance over the whole period considered in the simulation for the optimal allocation.", echo=FALSE}
+```{r cashbalance, fig.cap="Evolution of cash balance over the whole period considered in the simulation for the optimal allocation.", echo=FALSE, fig.align="center"}
 mkd$chr$cashbalance 
 ```
 
@@ -131,6 +196,8 @@ The assumption is that the machine allocator is only driven by short-term profit
 The optimal allocation is only optimal conditional on the chosen set of rules that bound machine agents.
 
 # Sources
+
+* Source code: https://github.com/Jordirof/machineAgents
 
 * Energy demand patterns: https://www.eia.gov/todayinenergy/detail.php?id=42915
 
